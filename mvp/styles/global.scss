@@ -6,3 +6,18 @@ body {
   color: $font-color;
   margin: 0 auto;
 }
+
+/* ✅ Apply styles to buttons */
+button {
+  background-color: $secondary;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: $darkSecondary;
+}

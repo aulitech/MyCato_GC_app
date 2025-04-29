@@ -1,189 +1,157 @@
-/**
- * @license
- * Copyright 2022 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import { Alert, Button, CircularProgress, Container, Dialog, DialogContent, DialogActions, Divider, IconButton, Snackbar, Stack, Typography } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import NavBar from '../components/navbar';
-import ReceiptRow from '../components/receiptRow';
-import ExpenseDialog from '../components/expenseDialog';
-import { useAuth } from '../firebase/auth';
-import { deleteReceipt, getReceipts } from '../firebase/firestore';
-import { deleteImage } from '../firebase/storage';
-import styles from '../styles/dashboard.module.scss';
-
-const ADD_SUCCESS = "Receipt was successfully added!";
-const ADD_ERROR = "Receipt was not successfully added!";
-const EDIT_SUCCESS = "Receipt was successfully updated!";
-const EDIT_ERROR = "Receipt was not successfully updated!";
-const DELETE_SUCCESS = "Receipt successfully deleted!";
-const DELETE_ERROR = "Receipt not successfully deleted!";
-
-// Enum to represent different states of receipts
-export const RECEIPTS_ENUM = Object.freeze({
-  none: 0,
-  add: 1,
-  edit: 2,
-  delete: 3,
-});
-
-const SUCCESS_MAP = {
-  [RECEIPTS_ENUM.add]: ADD_SUCCESS,
-  [RECEIPTS_ENUM.edit]: EDIT_SUCCESS,
-  [RECEIPTS_ENUM.delete]: DELETE_SUCCESS
-}
-
-const ERROR_MAP = {
-  [RECEIPTS_ENUM.add]: ADD_ERROR,
-  [RECEIPTS_ENUM.edit]: EDIT_ERROR,
-  [RECEIPTS_ENUM.delete]: DELETE_ERROR
-}
+import { useState, useEffect } from "react";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { Container, IconButton, Stack, Typography, Grid, Button, Alert } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import NavBar from "../components/navbar";
+import { useAuth } from "../firebase/auth";
+import { db } from '../firebase/firebase'; 
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import GestureVisualizer from "../components/GestureVisualizer";
+import styles from "../styles/dashboard.module.scss";
 
 export default function Dashboard() {
-  const { authUser, isLoading } = useAuth();
-  const router = useRouter();
-  const [action, setAction] = useState(RECEIPTS_ENUM.none);
-  
-  // State involved in loading, setting, deleting, and updating receipts
-  const [isLoadingReceipts, setIsLoadingReceipts] = useState(true);
-  const [deleteReceiptId, setDeleteReceiptId] = useState("");
-  const [deleteReceiptImageBucket, setDeleteReceiptImageBucket] = useState("");
-  const [receipts, setReceipts] = useState([]);
-  const [updateReceipt, setUpdateReceipt] = useState({});
+    const { authUser, isLoading } = useAuth();
+    const router = useRouter();
+    const [gestures, setGestures] = useState([]);  
+    const [loadingGestures, setLoadingGestures] = useState(true);
+    const [gestureDataMap, setGestureDataMap] = useState({});
+    const [showMessage, setShowMessage] = useState(false); // ✅ State for showing message
 
-  // State involved in snackbar
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [showSuccessSnackbar, setSuccessSnackbar] = useState(false);
-  const [showErrorSnackbar, setErrorSnackbar] = useState(false);
+    useEffect(() => {
+        if (authUser) {
+            fetchGestures();
+        }
+    }, [authUser]); 
 
-  // Listen for changes to loading and authUser, redirect if needed
-  useEffect(() => {
-    if (!isLoading && !authUser) {
-      router.push('/');
-    }
-  }, [authUser, isLoading])
+    const fetchGestures = async () => {
+        if (authUser) {
+            try {
+                const q = query(collection(db, "gesture_data"), where("userId", "==", authUser.uid));
+                const querySnapshot = await getDocs(q);
 
-  // Get receipts once user is logged in
-  useEffect(async () => {
-    if (authUser) {
-      const unsubscribe = await getReceipts(authUser.uid, setReceipts, setIsLoadingReceipts);
-      return () => unsubscribe();
-    }
-  }, [authUser])
+                let gestureSet = new Set();
+                querySnapshot.forEach((doc) => {
+                    const gestureName = doc.data().gestureName;
+                    gestureSet.add(gestureName);
+                });
 
-  // Sets appropriate snackbar message on whether @isSuccess and updates shown receipts if necessary
-  const onResult = async (receiptEnum, isSuccess) => {
-    setSnackbarMessage(isSuccess ? SUCCESS_MAP[receiptEnum] : ERROR_MAP[receiptEnum]);
-    isSuccess ? setSuccessSnackbar(true) : setErrorSnackbar(true);
-    setAction(RECEIPTS_ENUM.none);
-  }
+                const gestureArray = Array.from(gestureSet);
+                setGestures(gestureArray);
+                console.log("✅ Gestures Array:", gestureArray);
 
-  // For all of the onClick functions, update the action and fields for updating
+                if (gestureArray.length > 0) {
+                    fetchAllGestureData(gestureArray);  
+                }
+            } catch (error) {
+                console.error("❌ Error fetching gestures:", error);
+            } finally {
+                setLoadingGestures(false);
+            }
+        }
+    };
 
-  const onClickAdd = () => {
-    router.push('/gesture-collection'); // Navigate to the gesture collection page
-  };
+    const fetchAllGestureData = async (gestureArray) => {
+        if (!authUser) return;
+        let dataMap = {};  
 
-  const onUpdate = (receipt) => {
-    setAction(RECEIPTS_ENUM.edit);
-    setUpdateReceipt(receipt);
-  }
+        for (let gestureName of gestureArray) {
+            try {
+                console.log(`🔍 Fetching gesture data for: ${gestureName}`);
 
-  const onClickDelete = (id, imageBucket) => {
-    setAction(RECEIPTS_ENUM.delete);
-    setDeleteReceiptId(id);
-    setDeleteReceiptImageBucket(imageBucket);
-  }
+                const q = query(
+                    collection(db, "gesture_data"),
+                    where("userId", "==", authUser.uid),
+                    where("gestureName", "==", gestureName)
+                );
+                const querySnapshot = await getDocs(q);
 
-  const resetDelete = () => {
-    setAction(RECEIPTS_ENUM.none);
-    setDeleteReceiptId("");
-  }
+                if (!querySnapshot.empty) {
+                    let validGesture = null;
+                    for (let doc of querySnapshot.docs) {
+                        const imuData = doc.data().data;
+                        if (imuData && imuData.length > 100) { 
+                            validGesture = imuData;
+                            break; 
+                        }
+                    }
 
-  // Delete receipt image from Storage
-  const onDelete = async () => {
-    let isSucceed = true;
-    try {
-      await deleteReceipt(deleteReceiptId);
-      await deleteImage(deleteReceiptImageBucket);
-    } catch (error) {
-      isSucceed = false;
-    }
-    resetDelete();
-    onResult(RECEIPTS_ENUM.delete, isSucceed);
-  }
+                    if (validGesture) {
+                        dataMap[gestureName] = validGesture;  
+                    } else {
+                        console.warn(`⚠️ No valid gesture with >100 samples found for: ${gestureName}`);
+                    }
+                }
+            } catch (error) {
+                console.error(`❌ Error fetching gesture data for ${gestureName}:`, error);
+            }
+        }
 
-  return ((!authUser || isLoadingReceipts) ?
-    <CircularProgress color="inherit" sx={{ marginLeft: '50%', marginTop: '25%' }}/>
-    :
-    <div>
-      <Head>
-        <title>Cato Gesture Collection</title>
-      </Head>
+        setGestureDataMap(dataMap);  
+        console.log("✅ Filtered Gesture Data Map:", dataMap);
+    };
 
-      <NavBar />
-      <Container>
-        <Snackbar open={showSuccessSnackbar} autoHideDuration={1500} onClose={() => setSuccessSnackbar(false)}
-                  anchorOrigin={{ horizontal: 'center', vertical: 'top' }}>
-          <Alert onClose={() => setSuccessSnackbar(false)} severity="success">{snackbarMessage}</Alert>
-        </Snackbar>
-        <Snackbar open={showErrorSnackbar} autoHideDuration={1500} onClose={() => setErrorSnackbar(false)}
-                  anchorOrigin={{ horizontal: 'center', vertical: 'top' }}>
-          <Alert onClose={() => setErrorSnackbar(false)} severity="error">{snackbarMessage}</Alert>
-        </Snackbar>
-        <Stack direction="row" sx={{ paddingTop: "1.5em" }}>
-          <Typography variant="h4" sx={{ lineHeight: 2, paddingRight: "0.5em" }}>
-            GESTURES
-          </Typography>
-          <IconButton aria-label="edit" color="secondary" onClick={onClickAdd} className={styles.addButton}>
-            <AddIcon />
-          </IconButton>
-        </Stack>
-        { receipts.map((receipt) => (
-          <div key={receipt.id}>
-            <Divider light />
-            <ReceiptRow receipt={receipt}
-                        onEdit={() => onUpdate(receipt)}
-                        onDelete={() => onClickDelete(receipt.id, receipt.imageBucket)} />
-          </div>)
-        )}
-      </Container>
-      <ExpenseDialog edit={updateReceipt}
-                     showDialog={action === RECEIPTS_ENUM.add || action === RECEIPTS_ENUM.edit}
-                     onError={(receiptEnum) => onResult(receiptEnum, false)}
-                     onSuccess={(receiptEnum) => onResult(receiptEnum, true)}
-                     onCloseDialog={() => setAction(RECEIPTS_ENUM.none)}>
-      </ExpenseDialog>
-      <Dialog open={action === RECEIPTS_ENUM.delete} onClose={resetDelete}>
-        <Typography variant="h4" className={styles.title}>DELETE EXPENSE</Typography>
-        <DialogContent>
-            <Alert severity="error">This will permanently delete your receipt!</Alert>
-        </DialogContent>
-        <DialogActions sx={{ padding: '0 24px 24px'}}>
-          <Button color="secondary" variant="outlined" onClick={resetDelete}>
-              Cancel
-          </Button>
-          <Button color="secondary" variant="contained" onClick={onDelete} autoFocus>
-              Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
-  )
+    // ✅ Function to show message when button is clicked
+    const handleTrainModel = () => {
+        setShowMessage(true);
+        console.log("📡 Sending gestures to Auli.Tech for training...");
+    };
+
+    return (
+        (!authUser || loadingGestures) ? (
+            <Typography>Loading...</Typography>
+        ) : (
+            <div>
+                <Head>
+                    <title>Cato Gesture Collection</title>
+                </Head>
+
+                <Container>
+                    <Stack direction="row" sx={{ paddingTop: "1.5em" }}>
+                        <Typography variant="h4" sx={{ lineHeight: 2, paddingRight: "0.5em" }}>
+                            ADD GESTURE
+                        </Typography>
+                        <IconButton aria-label="add" color="secondary" onClick={() => router.push('/gesture-collection')} className={styles.addButton}>
+                            <AddIcon />
+                        </IconButton>
+                    </Stack>
+
+                    <Typography variant="h5" sx={{ marginTop: "1.5em", fontWeight: "bold" }}>
+                        Your Gestures:
+                    </Typography>
+
+                    {/* ✅ Gesture Visualizations */}
+                    <Grid container spacing={4} sx={{ marginTop: "20px" }}>
+                        {Object.keys(gestureDataMap).map((gestureName, index) => (
+                            <Grid item xs={12} sm={6} md={4} key={index}> 
+                                <Typography variant="h5" sx={{ fontWeight: "bold", textAlign: "center", marginBottom: "10px" }}>
+                                    {gestureName}
+                                </Typography>
+                                <GestureVisualizer imuData={gestureDataMap[gestureName]} />
+                            </Grid>
+                        ))}
+                    </Grid>
+
+                    {/* ✅ "Train Personalized Model" Button */}
+                    <div style={{ textAlign: "center", marginTop: "2rem" }}>
+                        <Button 
+                            variant="contained" 
+                            color="primary" 
+                            onClick={handleTrainModel} 
+                            sx={{ fontSize: "1.2rem", padding: "12px 24px", marginTop: "20px" }}
+                        >
+                            Train Personalized Model
+                        </Button>
+
+                        {/* ✅ Success Message Appears When Button is Clicked */}
+                        {showMessage && (
+                            <Alert severity="success" sx={{ marginTop: "15px", fontSize: "1.1rem" }}>
+                                Your personalized gesture model is training!
+                            </Alert>
+                        )}
+                    </div>
+                </Container>
+            </div>
+        )
+    );
 }

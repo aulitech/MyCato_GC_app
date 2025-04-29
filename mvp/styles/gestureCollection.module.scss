@@ -1,0 +1,305 @@
+@import "variables.module"; // ✅ Import global variables
+
+
+/* ✅ Ensure the Navbar Stays Fixed at the Top */
+.navbarContainer {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: $primary;
+    z-index: 1000;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ Adjust Content to Prevent Overlapping with Navbar */
+.pageContent {
+    margin-top: 80px; // ✅ Push content down (adjust based on navbar height)
+}
+
+/* ✅ Main Gesture Collection Layout */
+.gestureContainer {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #ffffff;
+    color: $font-color;
+    border-radius: 10px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* ✅ Page Title */
+.gestureTitle {
+    font-family: $font-title;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: $darkSecondary;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* ✅ Gesture Control Container */
+.gestureControlContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: $primary;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+}
+
+/* ✅ Buttons */
+.buttonContainer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 2rem; // ✅ Increase spacing between buttons
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.button {
+    background-color: $secondary;
+    color: white;
+    border: none;
+    padding: 14px 28px; // ✅ Increase padding for better touch targets
+    font-size: 1.1rem; // ✅ Slightly larger font
+    cursor: pointer;
+    border-radius: 10px; // ✅ Modern rounded buttons
+    transition: background-color 0.3s ease-in-out, transform 0.2s;
+    font-family: $font-type;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15); // ✅ Slightly deeper shadow
+}
+
+.button:hover {
+    background-color: $darkSecondary;
+    transform: translateY(-3px);
+}
+
+.button:disabled {
+    background-color: gray;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ✅ Input Fields Styling */
+.inputContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem; // ✅ Add space between inputs
+    padding: 1.5rem;
+    background-color: $primary;
+    border-radius: 8px;
+    box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+/* ✅ Styling Each Input Group */
+.inputGroup {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* ✅ Modernized Input Fields */
+.inputGroup input,
+.inputGroup select {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    background-color: #ffffff; // ✅ Ensures white background
+    font-family: $font-type;
+}
+
+/* ✅ Improve Focus Styling */
+.inputGroup input:focus,
+.inputGroup select:focus {
+    border-color: $secondary;
+    box-shadow: 0px 0px 6px rgba($secondary, 0.5);
+}
+
+/* ✅ Label Styling */
+.inputGroup label {
+    font-weight: bold;
+    color: $darkSecondary;
+    font-size: 1.1rem;
+}
+
+/* ✅ Progress Bar Container */
+.progressBarContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+/* ✅ Main Progress Bar */
+.progressBar {
+    width: 80%;
+    height: 15px;
+    border-radius: 8px;
+    appearance: none;
+    overflow: hidden;
+    background-color: #0077b6; /* ✅ Solid blue background */
+}
+
+/* ✅ Progress Fill */
+.progressBar::-webkit-progress-value {
+    background-color: #005f99; /* ✅ Darker blue as it progresses */
+    border-radius: 8px;
+}
+
+/* ✅ Mozilla Firefox Progress Bar */
+.progressBar::-moz-progress-bar {
+    background-color: #005f99;
+    border-radius: 8px;
+}
+
+/* ✅ Thin Reference Bar */
+.referenceBar {
+    width: 80%;
+    height: 5px; /* ✅ Very thin */
+    margin-top: 5px;
+    border-radius: 4px;
+    background: linear-gradient(to right,
+        #f4a261 0%,   /* Light orange (start) */
+        #f4a261 25%,  /* Light orange (first quarter) */
+        #2a9d8f 25%,  /* Green (start of middle section) */
+        #2a9d8f 75%,  /* Green (end of middle section) */
+        #f4a261 75%,  /* Light orange (start of last quarter) */
+        #f4a261 100%  /* Light orange (end) */
+    );
+}
+
+
+/* ✅ Gesture Count & Instructions */
+.gestureCounterContainer {
+    text-align: center;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ✅ Gesture Count Styling */
+.gestureCounter {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: $darkSecondary;
+}
+
+/* ✅ Gesture Collection Recommendation */
+.gestureInstructions {
+    font-size: 1rem;
+    color: #555;
+    margin-top: 0.5rem;
+}
+
+/* ✅ Container for Gesture Collection Layout */
+.contentContainer {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+/* ✅ Left Side: Gesture Input & Controls */
+.leftContainer {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ✅ Right Side: Gesture Summary Panel */
+.rightContainer {
+    flex: 1;
+    max-width: 300px;
+    margin-left: 2rem; /* ✅ Pushes it further right */
+    padding: 15px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    position: fixed; /* ✅ Keeps it positioned to the right */
+    right: 30px; /* ✅ Distance from the right edge */
+    top: 100px; /* ✅ Adjust height placement */
+}
+
+/* ✅ Gesture Summary Container (Below Main Control) */
+.gestureSummaryContainer {
+    width: 100%;
+    margin-top: 2rem; /* ✅ Adds space between control & summary */
+    padding: 1.5rem;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* ✅ Gesture Summary Title */
+.gestureSummaryContainer h3 {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: $darkSecondary;
+    margin-bottom: 10px;
+}
+
+/* ✅ Gesture Count List */
+.gestureSummaryContainer ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* ✅ Gesture List */
+.gestureList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.gestureList li {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: $secondary;
+    background-color: #ffffff;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.gestureSummaryContainer li {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: $secondary;
+    background-color: #ffffff;
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ Empty State Styling */
+.emptyMessage {
+    font-size: 1rem;
+    color: #777;
+    text-align: center;
+    margin-top: 10px;
+}
