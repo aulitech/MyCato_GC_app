@@ -13,7 +13,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 const collectionName = 'gesture_data';
-const userId = 'DRDGtHLCPKNgD7iOfyxy1W8nW4y1';
+const userId = 'lyll1snmrrVMCjBN4WPVSKxnwlt2';
 
 
 
@@ -81,7 +81,7 @@ async function exportUserIMUData() {
     ]
   });
 
-  const filename = `C:/Repositories/GesturePostProcessing/imu_data_${userId}.csv`;
+  const filename = `C:/Repositories/gesture_models/Mun/Data/imu_data_${userId}.csv`;
   const outputDir = path.dirname(filename);
 
   if (!fs.existsSync(outputDir)) {
