@@ -56,11 +56,8 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
 
         const dataRow = { seq, ts, acc: [ax, ay, az], gyro: [gx, gy, gz] };
 
-        console.log("📡 Data received:", dataRow);
-
         setGestureData(prevData => {
             const newData = [...prevData, dataRow];
-            console.log("📊 Updated Gesture Data Length:", newData.length);
             return newData;
         });
     };

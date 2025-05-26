@@ -118,6 +118,8 @@ function GestureInputs({ onUpdate }) {
                         <option value="Above Left Foot">Above Left Foot</option>
                         <option value="Above Right Knee">Above Right Knee</option>
                         <option value="Above Left Knee">Above Left Knee</option>
+                        <option value="Other">Other</option>
+
                     </select>
                 </div>
             </div>
