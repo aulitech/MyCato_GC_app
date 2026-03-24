@@ -1,48 +1,59 @@
-import React, { useState, useCallback } from "react";
-import { useAuth } from "../firebase/auth"; // ✅ Import authentication context
-import { collection, addDoc } from "firebase/firestore"; // ✅ Import Firestore methods
-import { db} from "../firebase/firebase";
-import GestureInputs from "./GestureInputs"; // ✅ Import GestureInputs component
-import styles from "../styles/gestureCollection.module.scss"; // ✅ Import styles
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../firebase/firebase";
+import GestureInputs from "./GestureInputs";
+import styles from "../styles/gestureCollection.module.scss";
 
-function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBluetoothConnected, updateGestureCounts, onGestureSaved}) {
+function GestureControl({enableCharacteristic, accCharacteristic, userId, isBluetoothConnected, updateGestureCounts, onGestureSaved, isSummaryUpdating,}) {
     const [gestureInfo, setGestureInfo] = useState({ gestureName: "", location: "", isValid: false });
     const [isCollecting, setIsCollecting] = useState(false);
     const [progress, setProgress] = useState(100);
     const [gestureData, setGestureData] = useState([]);
     const [isGestureReady, setIsGestureReady] = useState(false);
-    const [autoAdvance, setAutoAdvance] = useState(false); // ✅ New state for auto-advance
+    const [autoAdvance, setAutoAdvance] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // ✅ Memoize onUpdate to prevent unnecessary updates
+    // 🔁 Refs to track latest values in auto-start loop
+    const isSavingRef = useRef(isSaving);
+    const isSummaryUpdatingRef = useRef(isSummaryUpdating);
+
+    useEffect(() => {
+        isSavingRef.current = isSaving;
+    }, [isSaving]);
+
+    useEffect(() => {
+        isSummaryUpdatingRef.current = isSummaryUpdating;
+    }, [isSummaryUpdating]);
+
     const handleUpdateGesture = useCallback((newGestureInfo) => {
         console.log("Gesture Info Updated:", newGestureInfo);
         setGestureInfo(newGestureInfo);
     }, []);
 
-    // ✅ Start Gesture Collection
     const handleStart = () => {
-        if (!enableCharacteristic || !accCharacteristic) {
-            console.error("Enable or accelerometer characteristic is missing");
+        if (!enableCharacteristic || !accCharacteristic || isSavingRef.current || isSummaryUpdatingRef.current) {
+            console.error("Enable/accelerometer characteristic missing or saving/summary update in progress");
             return;
         }
 
-        enableCharacteristic.writeValue(new Uint8Array([0x01]))
+        enableCharacteristic
+            .writeValue(new Uint8Array([0x01]))
             .then(() => console.log("Enabling Motion service"))
             .catch((error) => console.error("Error enabling service:", error));
 
-        accCharacteristic.startNotifications()
+        accCharacteristic
+            .startNotifications()
             .then(() => {
                 console.log("Notifications requested");
                 accCharacteristic.addEventListener("characteristicvaluechanged", handleNotifications);
                 setIsCollecting(true);
-                setGestureData([]); // Reset data collection
-                setIsGestureReady(false); // Disable Accept/Reject buttons
+                setGestureData([]);
+                setIsGestureReady(false);
                 startProgressBar();
             })
             .catch((error) => console.error("Error starting notifications:", error));
     };
 
-    // ✅ Handle Incoming IMU Data
     const handleNotifications = (event) => {
         let value = event.target.value;
         const seq = value.getUint16(0, false);
@@ -54,15 +65,9 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
         const gy = value.getInt16(12, false) / 10;
         const gz = value.getInt16(14, false) / 10;
 
-        const dataRow = { seq, ts, acc: [ax, ay, az], gyro: [gx, gy, gz] };
-
-        setGestureData(prevData => {
-            const newData = [...prevData, dataRow];
-            return newData;
-        });
+        setGestureData((prevData) => [...prevData, { seq, ts, acc: [ax, ay, az], gyro: [gx, gy, gz] }]);
     };
 
-    // ✅ Start Progress Bar
     const startProgressBar = () => {
         let progressValue = 100;
         const interval = setInterval(() => {
@@ -78,20 +83,17 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
 
     const stopCollection = () => {
         if (!accCharacteristic) return;
-    
-        accCharacteristic.stopNotifications()
+
+        accCharacteristic
+            .stopNotifications()
             .then(() => {
                 console.log("✅ Notifications stopped");
                 accCharacteristic.removeEventListener("characteristicvaluechanged", handleNotifications);
                 setProgress(100);
                 setIsCollecting(false);
-    
-                // ✅ Debugging: Print gesture data using a callback
                 setTimeout(() => {
-                    setGestureData(prevData => {
-                        console.log("📊 Gesture Data Length at Stop:", prevData.length);
+                    setGestureData((prevData) => {
                         const isReady = prevData.length > 0;
-                        console.log("⚡ Setting isGestureReady:", isReady);
                         setIsGestureReady(isReady);
                         return prevData;
                     });
@@ -99,22 +101,18 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
             })
             .catch((error) => console.error("❌ Error stopping notifications:", error));
     };
-    
 
     const saveGestureToFirestore = async () => {
-        console.log("Saving gesture with the following data:");
-        console.log("userId:", userId);
-        console.log("gestureName:", gestureInfo.gestureName);
-        console.log("gestureData Length:", gestureData.length);
-    
         if (!userId || !gestureInfo.gestureName || gestureData.length === 0) {
             console.error("❌ Missing required data, cannot save gesture.");
             return;
         }
-    
+
+        setIsSaving(true);
+
         try {
             await addDoc(collection(db, "gesture_data"), {
-                userId: userId,
+                userId,
                 gestureName: gestureInfo.gestureName,
                 location: gestureInfo.location,
                 timestamp: new Date().toISOString(),
@@ -126,55 +124,70 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
         } catch (error) {
             console.error("🔥 Error saving gesture data:", error);
         }
-    
+
         setIsGestureReady(false);
         setGestureData([]);
-    
-        if (autoAdvance) {
-            setTimeout(() => handleStart(), 500);
-        }
+        setIsSaving(false);
+
+        if (autoAdvance) waitAndAutoStart();
     };
-    
 
-
-    // ✅ Reject Gesture - Simply clear the collected data
     const rejectGesture = () => {
         console.log("Gesture rejected, data cleared.");
         setGestureData([]);
         setIsGestureReady(false);
 
-        // ✅ If auto-advance is enabled, immediately start next gesture
-        if (autoAdvance) {
-            setTimeout(() => handleStart(), 500);
-        }
+        if (autoAdvance) waitAndAutoStart();
     };
 
-
+    const waitAndAutoStart = () => {
+        const checkAndStart = () => {
+            if (!isSavingRef.current && !isSummaryUpdatingRef.current) {
+                handleStart();
+            } else {
+                setTimeout(checkAndStart, 200);
+            }
+        };
+        setTimeout(checkAndStart, 500);
+    };
 
     return (
         <div className={styles.gestureControlContainer}>
+            {(isSaving || isSummaryUpdating) && <p>Saving your Gesture....</p>}
 
-            {/* ✅ Gesture Inputs */}
             <GestureInputs userId={userId} onUpdate={handleUpdateGesture} />
 
-            {/* ✅ Progress Bar */}
             <div className={styles.progressBarContainer}>
                 <progress className={styles.progressBar} value={progress} max="100"></progress>
-                <div className={styles.referenceBar}></div> {/* ✅ Thin reference bar below */}
+                <div className={styles.referenceBar}></div>
             </div>
 
-            {/* ✅ Button Container */}
             <div className={styles.buttonContainer}>
-                <button 
-                    onClick={handleStart} 
-                    disabled={isCollecting || isGestureReady || !gestureInfo.isValid || !isBluetoothConnected} 
-                    className={`${styles.button} ${isCollecting || isGestureReady || !gestureInfo.isValid || !isBluetoothConnected ? styles.disabled : ""}`}
+                <button
+                    onClick={handleStart}
+                    disabled={
+                        isCollecting ||
+                        isGestureReady ||
+                        !gestureInfo.isValid ||
+                        !isBluetoothConnected ||
+                        isSaving ||
+                        isSummaryUpdating
+                    }
+                    className={`${styles.button} ${
+                        isCollecting ||
+                        isGestureReady ||
+                        !gestureInfo.isValid ||
+                        !isBluetoothConnected ||
+                        isSaving ||
+                        isSummaryUpdating
+                            ? styles.disabled
+                            : ""
+                    }`}
                 >
                     Start
                 </button>
             </div>
 
-            {/* ✅ Auto-Advance Checkbox */}
             <div className={styles.checkboxContainer}>
                 <input
                     type="checkbox"
@@ -185,20 +198,18 @@ function GestureControl({ enableCharacteristic, accCharacteristic, userId, isBlu
                 <label htmlFor="autoAdvance">Auto-Advance</label>
             </div>
 
-            {/* ✅ Accept/Reject Gesture Buttons */}
             <div className={styles.buttonContainer}>
-                <button 
-                    onClick={saveGestureToFirestore} 
-                    disabled={!isGestureReady} 
-                    className={`${styles.button} ${!isGestureReady ? styles.disabled : ""}`}
+                <button
+                    onClick={saveGestureToFirestore}
+                    disabled={!isGestureReady || isSaving}
+                    className={`${styles.button} ${!isGestureReady || isSaving ? styles.disabled : ""}`}
                 >
                     Accept Gesture
                 </button>
-
-                <button 
-                    onClick={rejectGesture} 
-                    disabled={!isGestureReady} 
-                    className={`${styles.button} ${!isGestureReady ? styles.disabled : ""}`}
+                <button
+                    onClick={rejectGesture}
+                    disabled={!isGestureReady || isSaving}
+                    className={`${styles.button} ${!isGestureReady || isSaving ? styles.disabled : ""}`}
                 >
                     Reject Gesture
                 </button>

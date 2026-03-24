@@ -13,8 +13,8 @@ admin.initializeApp({
 
 const db = admin.firestore();
 const collectionName = 'gesture_data';
-const userId = 'lyll1snmrrVMCjBN4WPVSKxnwlt2';
-
+const userId = 'nT3T0twP4xS5XJJyNaXRNY89sZs1';
+const allowedGestureNames = new Set(['shake_head_no', 'nod_head_yes', 'circle_cw', 'circle_ccw', 'right_lean_nod_up', 'inverted_triangle']);
 
 
 async function exportUserIMUData() {
@@ -26,11 +26,14 @@ async function exportUserIMUData() {
 
   snapshot.forEach(doc => {
     const docData = doc.data();
-  
+    
     // ✅ FILTER by userId manually
     if (docData.userId !== userId) return;
+
   
     const gestureName = docData.gestureName ?? '';
+    if (!allowedGestureNames.has(gestureName)) return;
+
     const location = docData.location ?? '';
     const gestureTimestamp = docData.timestamp ?? '';
     const samples = docData.data ?? [];
@@ -81,7 +84,7 @@ async function exportUserIMUData() {
     ]
   });
 
-  const filename = `C:/Repositories/gesture_models/Mun/Data/imu_data_${userId}.csv`;
+  const filename = `C:/Repositories/gesture_models/${userId}_raw_Sandra.csv`;
   const outputDir = path.dirname(filename);
 
   if (!fs.existsSync(outputDir)) {

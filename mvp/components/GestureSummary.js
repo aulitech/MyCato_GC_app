@@ -3,7 +3,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import styles from "../styles/gestureCollection.module.scss";
 
-function GestureSummary({ userId, refreshTrigger}) {
+function GestureSummary({ userId, refreshTrigger, setIsSummaryUpdating }) {
     const [gestureCounts, setGestureCounts] = useState({});
 
     useEffect(() => {
@@ -11,6 +11,7 @@ function GestureSummary({ userId, refreshTrigger}) {
 
         const fetchGestureCounts = async () => {
             try {
+                setIsSummaryUpdating(true); // 🔁 Start
                 console.log("Fetching gesture counts for user:", userId);
                 const q = query(collection(db, "gesture_data"), where("userId", "==", userId));
                 const querySnapshot = await getDocs(q);
@@ -25,6 +26,8 @@ function GestureSummary({ userId, refreshTrigger}) {
                 console.log("✅ Gesture counts updated:", counts);
             } catch (error) {
                 console.error("❌ Error fetching gesture counts:", error);
+            } finally {
+                setIsSummaryUpdating(false); // ✅ End
             }
         };
 

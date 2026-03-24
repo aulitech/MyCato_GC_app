@@ -212,12 +212,13 @@
 
 /* ✅ Container for Gesture Collection Layout */
 .contentContainer {
-    display: flex;
-    width: 100%;
-    max-width: 1200px;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  padding: 2rem;
 }
 
 /* ✅ Left Side: Gesture Input & Controls */
@@ -229,17 +230,11 @@
 
 /* ✅ Right Side: Gesture Summary Panel */
 .rightContainer {
-    flex: 1;
-    max-width: 300px;
-    margin-left: 2rem; /* ✅ Pushes it further right */
-    padding: 15px;
-    background-color: #f8f8f8;
-    border-radius: 8px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: left;
-    position: fixed; /* ✅ Keeps it positioned to the right */
-    right: 30px; /* ✅ Distance from the right edge */
-    top: 100px; /* ✅ Adjust height placement */
+  flex: 1;
+  max-width: 300px;
+  margin-left: 8rem;
+  position: sticky;
+  top: 100px;
 }
 
 /* ✅ Gesture Summary Container (Below Main Control) */

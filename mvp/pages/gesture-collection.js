@@ -9,16 +9,14 @@ import styles from "../styles/gestureCollection.module.scss"; // ✅ Import SCSS
 import { useAuth } from "../firebase/auth";
 
 function GestureCollection() {
-    const [gestureInputs, setGestureInputs] = useState({}); // ✅ State for input fields
     const [enableCharacteristic, setEnableCharacteristic] = useState(null); // ✅ Enable characteristic
     const [accelerometerCharacteristic, setAccelerometerCharacteristic] = useState(null); // ✅ Accelerometer characteristic
     const [userId, setUserId] = useState(null); // ✅ Store user ID from Firebase Auth
-    const [gestureCount, setGestureCount] = useState(0); // ✅ Local Gesture Count
     const [isBluetoothConnected, setBluetoothConnected] = useState(false); // ✅ Track Bluetooth status
     const { authUser, isLoading } = useAuth(); // ✅ Get authUser
     const [gestureCounts, setGestureCounts] = useState({});
-    const [gestureUpdated, setGestureUpdated] = useState(false); // ✅ Track when a gesture is saved
     const [refreshGestureSummary, setRefreshGestureSummary] = useState(false); // ✅ Trigger GestureSummary update
+    const [isSummaryUpdating, setIsSummaryUpdating] = useState(false);
 
 
     const updateGestureCounts = (newGesture) => {
@@ -50,12 +48,6 @@ function GestureCollection() {
     if (isLoading) return <p>Loading...</p>; // ✅ Prevents running before auth is ready
  
 
-    // ✅ Handle updates from GestureInputs
-    const handleInputUpdate = (data) => {
-        setGestureInputs(data);
-        console.log("Input Data:", data);
-    };
-
     // ✅ Callback for setting Bluetooth characteristics
     const handleCharacteristicsReady = (enableChar, accChar) => {
         setEnableCharacteristic(enableChar);
@@ -64,30 +56,36 @@ function GestureCollection() {
     };
 
     return (
-        <div className={styles.gestureContainer}>
-            <h1 className={styles.gestureTitle}>Cato Gesture Collection</h1>
-    
-            {/* ✅ Bluetooth Connector */}
-            <BluetoothConnector 
-                onCharacteristicsReady={handleCharacteristicsReady}
-                setBluetoothConnected={setBluetoothConnected}
-            />
-    
-            {/* ✅ Gesture Control Section */}
-            <GestureControl
-                enableCharacteristic={enableCharacteristic}
-                accCharacteristic={accelerometerCharacteristic}
-                userId={userId}
-                isBluetoothConnected={isBluetoothConnected}
-                updateGestureCounts={updateGestureCounts}
-                onGestureSaved={handleGestureSaved}
-            />
-    
-             {/* ✅ Add Gesture Summary Below Gesture Control */}
-             {userId && <GestureSummary userId={userId} refreshTrigger={refreshGestureSummary}/>}
+        <div className={styles.pageContent}>
+            <div className={styles.contentContainer}>
+                {/* Left Side: Inputs and Controls */}
+                <div className={styles.leftContainer}>
+                    <h1 className={styles.gestureTitle}>Cato Gesture Collection</h1>
 
+                    <BluetoothConnector //passing props to child component: BluetoothConnector
+                        onCharacteristicsReady={handleCharacteristicsReady} 
+                        setBluetoothConnected={setBluetoothConnected}
+                    />
+
+                    <GestureControl //passing props to child component: GestureControl
+                        enableCharacteristic={enableCharacteristic}
+                        accCharacteristic={accelerometerCharacteristic}
+                        userId={userId}
+                        isBluetoothConnected={isBluetoothConnected}
+                        updateGestureCounts={updateGestureCounts}
+                        onGestureSaved={handleGestureSaved}
+                        isSummaryUpdating={isSummaryUpdating}
+                    />
+                </div>
+
+                {/* Right Side: Gesture Summary */}
+                <div className={styles.rightContainer}>
+                    {userId && <GestureSummary userId={userId} refreshTrigger={refreshGestureSummary} setIsSummaryUpdating={setIsSummaryUpdating}/>} 
+                </div>
+            </div>
         </div>
     );
+
 }
 
 export default GestureCollection;
